@@ -1,0 +1,5 @@
+.python-version
+/.venv
+/url_list
+/scraped_pages
+/storage
