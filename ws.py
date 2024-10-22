@@ -18,11 +18,12 @@ def sanitize_filename(url):
     return "".join(x for x in path if x.isalnum() or x in ['-', '_']).rstrip()
 
 class WebsiteScraper:
-    def __init__(self, start_url):
+    def __init__(self, start_url, single_page=False):  # Add single_page parameter
         self.start_url = start_url
         self.base_domain = urlparse(start_url).netloc
         self.visited_urls = set()
         self.domain_folder = clean_domain(start_url)
+        self.single_page = single_page  # Store the mode
         
         # Create domain-specific folders
         self.md_folder = os.path.join("scraped_pages", self.domain_folder)
@@ -120,7 +121,9 @@ class WebsiteScraper:
                     writer = csv.writer(csvfile)
                     writer.writerow([url])
 
-                await context.enqueue_links()
+                # Only enqueue links if we're not in single_page mode
+                if not self.single_page:
+                    await context.enqueue_links()
                 
             except Exception as e:
                 context.log.error(f"Error processing {url}: {str(e)}")
@@ -128,13 +131,47 @@ class WebsiteScraper:
     async def run(self):
         await self.crawler.run([self.start_url])
 
+async def scrape_from_csv(csv_path):
+    """
+    Read URLs from a CSV file and scrape them all in one batch
+    CSV should have URLs in the first column
+    """
+    if not os.path.exists(csv_path):
+        print(f"Error: CSV file not found at {csv_path}")
+        return
+
+    urls = []
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            urls = [row[0] for row in reader if row]  # Get first column, skip empty rows
+    except Exception as e:
+        print(f"Error reading CSV file: {str(e)}")
+        return
+
+    if not urls:
+        print("No URLs found in the CSV file")
+        return
+
+    # Create a single scraper with the first URL (for folder naming)
+    try:
+        print(f"Starting batch scrape of {len(urls)} URLs")
+        scraper = WebsiteScraper(urls[0], single_page=True)
+        await scraper.crawler.run(urls)  # Pass all URLs at once
+    except Exception as e:
+        print(f"Error during batch scrape: {str(e)}")
+
 async def main():
     parser = argparse.ArgumentParser(description='Web scraper for any website')
-    parser.add_argument('url', help='Starting URL to scrape (e.g., https://example.com)')
+    parser.add_argument('input', help='URL to scrape or path to CSV file containing URLs')
     
     args = parser.parse_args()
-    scraper = WebsiteScraper(args.url)
-    await scraper.run()
+    
+    if args.input.lower().endswith('.csv'):
+        await scrape_from_csv(args.input)
+    else:
+        scraper = WebsiteScraper(args.input, single_page=False)  # Normal crawling mode
+        await scraper.run()
 
 if __name__ == "__main__":
     asyncio.run(main())

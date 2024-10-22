@@ -13,24 +13,8 @@ A simple but powerful web scraper that crawls websites and saves content in mark
 
 ## Setup
 
-### Using UV (Recommended)
-
-Install uv if you haven't already
-
-    pip install uv
-
-Create and activate virtual environment
-
-    uv venv
-    uv python install 3.12
-    uv python pin 3.12
-
-Install dependencies
-
-    uv pip install -r requirements.txt
-    uv run playwright install
-
-### Using Traditional venv
+### Using venv 
+(you may try without venv if you want, recommended python version 3.12 or higher)
 
     python -m venv .venv
     .venv/Scripts/activate # On Windows
@@ -42,13 +26,13 @@ Install dependencies
 
 Run the scraper by providing a starting URL:
 
-### Using UV
-
-    uv run ws.py https://example.com
-
-### Using Python directly
+### Automatically Crawling Multiple Pages
 
     python ws.py https://example.com
+
+### Specifying a list of urls (local csv file)
+
+    python ws.py link_to_file.csv
 
 ## Output Structure
 
